@@ -110,7 +110,7 @@ class st7789(color_device):
                    0xA1])
 
         self.command(self._const.FRCTRL2)
-        self.data(0x0F)
+        self.data([0x0F])
 
         self.command(self._const.GMCTRP1)    # Set Gamma
         self.data([0xD0,
@@ -144,11 +144,11 @@ class st7789(color_device):
                    0x20,
                    0x23])
 
-        self.command(self._const.INVOFF)  # Don't invert display
+        self.command(self._const.NORMALDISPLAY)  # Don't invert display
 
         self.command(self._const.SLPOUT)
 
-        self.command(self._const.DISPON)     # Display on
+        self.command(self._const.DISPLAYON)     # Display on
         sleep(0.100)               # 100 ms
 
         self.clear()
