@@ -61,12 +61,13 @@ class st7789(color_device):
     affect the brightness and other settings.
     """
 
-    def __init__(self, serial_interface=None, width=240, height=240,  rotate=0, **kwargs):
-
-        super(st7789, self).__init__(luma.oled.const.st7789, serial_interface)
-        self.capabilities(width, height, rotate)
+    def __init__(self, serial_interface=None, width=96, height=64, rotate=0,
+                 framebuffer=None, **kwargs):
+        super(st7789, self).__init__(serial_interface, width, height, rotate,
+                                     framebuffer, **kwargs)
 
     def _init_sequence(self):
+        self._const = luma.oled.const.st7789
         self.command(self._const.SWRESET)    # Software reset
         sleep(0.150)               # delay 150 ms
 
