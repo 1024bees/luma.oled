@@ -61,10 +61,13 @@ class st7789(color_device):
     affect the brightness and other settings.
     """
 
-    def __init__(self, serial_interface=None, width=96, height=64, rotate=0,
+    def __init__(self, serial_interface=None, width=240, height=240, rotate=0,
                  framebuffer=None, **kwargs):
         super(st7789, self).__init__(serial_interface, width, height, rotate,
                                      framebuffer, **kwargs)
+
+    def _supported_dimensions(self):
+        return [(240, 240)]
 
     def _init_sequence(self):
         self._const = luma.oled.const.st7789
@@ -72,74 +75,74 @@ class st7789(color_device):
         sleep(0.150)               # delay 150 ms
 
         self.command(self._const.MADCTL)
-        self.data(0x70)
+        self.data([0x70])
 
         self.command(self._const.FRMCTR2)    # Frame rate ctrl - idle mode
-        self.data(0x0C)
-        self.data(0x0C)
-        self.data(0x00)
-        self.data(0x33)
-        self.data(0x33)
+        self.data([0x0C,
+                   0x0C,
+                   0x00,
+                   0x33,
+                   0x33])
 
         self.command(self._const.COLMOD)
-        self.data(0x05)
+        self.data([0x05])
 
         self.command(self._const.GCTRL)
-        self.data(0x14)
+        self.data([0x14])
 
         self.command(self._const.VCOMS)
-        self.data(0x37)
+        self.data([0x37])
 
         self.command(self._const.LCMCTRL)    # Power control
-        self.data(0x2C)
+        self.data([0x2C])
 
         self.command(self._const.VDVVRHEN)   # Power control
-        self.data(0x01)
+        self.data([0x01])
 
         self.command(self._const.VRHS)       # Power control
-        self.data(0x12)
+        self.data([0x12])
 
         self.command(self._const.VDVS)       # Power control
-        self.data(0x20)
+        self.data([0x20])
 
         self.command(0xD0)
-        self.data(0xA4)
-        self.data(0xA1)
+        self.data([0xA4,
+                   0xA1])
 
         self.command(self._const.FRCTRL2)
         self.data(0x0F)
 
         self.command(self._const.GMCTRP1)    # Set Gamma
-        self.data(0xD0)
-        self.data(0x04)
-        self.data(0x0D)
-        self.data(0x11)
-        self.data(0x13)
-        self.data(0x2B)
-        self.data(0x3F)
-        self.data(0x54)
-        self.data(0x4C)
-        self.data(0x18)
-        self.data(0x0D)
-        self.data(0x0B)
-        self.data(0x1F)
-        self.data(0x23)
+        self.data([0xD0,
+                   0x04,
+                   0x0D,
+                   0x11,
+                   0x13,
+                   0x2B,
+                   0x3F,
+                   0x54,
+                   0x4C,
+                   0x18,
+                   0x0D,
+                   0x0B,
+                   0x1F,
+                   0x23])
 
         self.command(self._const.GMCTRN1)    # Set Gamma
-        self.data(0xD0)
-        self.data(0x04)
-        self.data(0x0C)
-        self.data(0x11)
-        self.data(0x13)
-        self.data(0x2C)
-        self.data(0x3F)
-        self.data(0x44)
-        self.data(0x51)
-        self.data(0x2F)
-        self.data(0x1F)
-        self.data(0x1F)
-        self.data(0x20)
-        self.data(0x23)
+        self.data([0xD0,
+                   0x04,
+                   0x0C,
+                   0x11,
+                   0x13,
+                   0x2C,
+                   0x3F,
+                   0x44,
+                   0x51,
+                   0x2F,
+                   0x1F,
+                   0x1F,
+                   0x20,
+                   0x23])
 
         self.command(self._const.INVOFF)  # Don't invert display
 
@@ -260,8 +263,7 @@ class sh1106(device):
             offsets = [y + self.width * i for i in range(8)]
 
             for x in range(self.width):
-                buf[x] = \
-                    (image_data[x + offsets[0]] and 0x01) | \
+                buf[x] = (image_data[x + offsets[0]] and 0x01) | \
                     (image_data[x + offsets[1]] and 0x02) | \
                     (image_data[x + offsets[2]] and 0x04) | \
                     (image_data[x + offsets[3]] and 0x08) | \
