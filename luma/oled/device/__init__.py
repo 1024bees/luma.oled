@@ -48,8 +48,147 @@ from luma.oled.device.framebuffer_mixin import __framebuffer_mixin
 __all__ = [
     "ssd1306", "ssd1309", "ssd1322", "ssd1362", "ssd1322_nhd", "ssd1325",
     "ssd1327", "ssd1331", "ssd1351", "sh1106", "sh1107", "ws0010",
-    "winstar_weh"
+    "winstar_weh", "st7789"
 ]
+
+
+class st7789(color_device):
+    """
+    Serial interface to a monochrome SH1106 OLED display.
+
+    On creation, an initialization sequence is pumped to the display
+    to properly configure it. Further control commands can then be called to
+    affect the brightness and other settings.
+    """
+
+    def __init__(self, serial_interface=None, width=240, height=240,  rotate=0, **kwargs):
+
+        super(st7789, self).__init__(luma.oled.const.st7789, serial_interface)
+        self.capabilities(width, height, rotate)
+
+    def _init_sequence(self):
+        self.command(self._const.SWRESET)    # Software reset
+        sleep(0.150)               # delay 150 ms
+
+        self.command(self._const.MADCTL)
+        self.data(0x70)
+
+        self.command(self._const.FRMCTR2)    # Frame rate ctrl - idle mode
+        self.data(0x0C)
+        self.data(0x0C)
+        self.data(0x00)
+        self.data(0x33)
+        self.data(0x33)
+
+        self.command(self._const.COLMOD)
+        self.data(0x05)
+
+        self.command(self._const.GCTRL)
+        self.data(0x14)
+
+        self.command(self._const.VCOMS)
+        self.data(0x37)
+
+        self.command(self._const.LCMCTRL)    # Power control
+        self.data(0x2C)
+
+        self.command(self._const.VDVVRHEN)   # Power control
+        self.data(0x01)
+
+        self.command(self._const.VRHS)       # Power control
+        self.data(0x12)
+
+        self.command(self._const.VDVS)       # Power control
+        self.data(0x20)
+
+        self.command(0xD0)
+        self.data(0xA4)
+        self.data(0xA1)
+
+        self.command(self._const.FRCTRL2)
+        self.data(0x0F)
+
+        self.command(self._const.GMCTRP1)    # Set Gamma
+        self.data(0xD0)
+        self.data(0x04)
+        self.data(0x0D)
+        self.data(0x11)
+        self.data(0x13)
+        self.data(0x2B)
+        self.data(0x3F)
+        self.data(0x54)
+        self.data(0x4C)
+        self.data(0x18)
+        self.data(0x0D)
+        self.data(0x0B)
+        self.data(0x1F)
+        self.data(0x23)
+
+        self.command(self._const.GMCTRN1)    # Set Gamma
+        self.data(0xD0)
+        self.data(0x04)
+        self.data(0x0C)
+        self.data(0x11)
+        self.data(0x13)
+        self.data(0x2C)
+        self.data(0x3F)
+        self.data(0x44)
+        self.data(0x51)
+        self.data(0x2F)
+        self.data(0x1F)
+        self.data(0x1F)
+        self.data(0x20)
+        self.data(0x23)
+
+        self.command(self._const.INVOFF)  # Don't invert display
+
+        self.command(self._const.SLPOUT)
+
+        self.command(self._const.DISPON)     # Display on
+        sleep(0.100)               # 100 ms
+
+        self.clear()
+        self.show()
+
+    def _set_position(self, top, right, bottom, left):
+        self.set_window(x0=left, y0=top, y1=bottom, x1=right)
+
+    def contrast(self, level):
+        """
+        dont know dont care brother
+        """
+        pass
+
+    def set_window(self, x0=0, y0=0, x1=None, y1=None):
+        """Set the pixel address window for proceeding drawing commands. x0 and
+        x1 should define the minimum and maximum x pixel bounds.  y0 and y1
+        should define the minimum and maximum y pixel bound.  If no parameters
+        are specified the default will be to update the entire display from 0,0
+        to width-1,height-1.
+        """
+        if x1 is None:
+            x1 = self._width - 1
+
+        if y1 is None:
+            y1 = self._height - 1
+
+        y0 += self._offset_top
+        y1 += self._offset_top
+
+        x0 += self._offset_left
+        x1 += self._offset_left
+
+        self.command(self._const.CASET)       # Column addr set
+        self.data(x0 >> 8)
+        self.data(x0 & 0xFF)             # XSTART
+        self.data(x1 >> 8)
+        self.data(x1 & 0xFF)             # XEND
+        self.command(self._const.RASET)       # Row addr set
+        self.data(y0 >> 8)
+        self.data(y0 & 0xFF)             # YSTART
+        self.data(y1 >> 8)
+        self.data(y1 & 0xFF)             # YEND
+        self.command(self._const.RAMWR)       # write to RAM
 
 
 class sh1106(device):
@@ -237,7 +376,8 @@ class ssd1306(device):
     """
 
     def __init__(self, serial_interface=None, width=128, height=64, rotate=0, **kwargs):
-        super(ssd1306, self).__init__(luma.oled.const.ssd1306, serial_interface)
+        super(ssd1306, self).__init__(
+            luma.oled.const.ssd1306, serial_interface)
         self.capabilities(width, height, rotate)
 
         # Supported modes
@@ -255,7 +395,8 @@ class ssd1306(device):
 
         self._pages = height // 8
         self._mask = [1 << (i // width) % 8 for i in range(width * height)]
-        self._offsets = [(width * (i // (width * 8))) + (i % width) for i in range(width * height)]
+        self._offsets = [(width * (i // (width * 8))) + (i % width)
+                         for i in range(width * height)]
         self._colstart = settings['colstart']
         self._colend = self._colstart + self._w
 
@@ -454,14 +595,16 @@ class ssd1351(color_device):
                 return (left + h_offset, top + v_offset, right + h_offset, bottom + v_offset)
             self._apply_offsets = offset
 
-        super(ssd1351, self).__init__(serial_interface, width, height, rotate, framebuffer, **kwargs)
+        super(ssd1351, self).__init__(serial_interface,
+                                      width, height, rotate, framebuffer, **kwargs)
 
     def _supported_dimensions(self):
         return [(96, 96), (128, 128), (128, 96)]
 
     def _init_sequence(self):
         self.command(0xFD, 0x12)               # Unlock IC MCU interface
-        self.command(0xFD, 0xB1)               # Command A2,B1,B3,BB,BE,C1 accessible if in unlock state
+        # Command A2,B1,B3,BB,BE,C1 accessible if in unlock state
+        self.command(0xFD, 0xB1)
         self.command(0xAE)                     # Display off
         self.command(0xB3, 0xF1)               # Clock divider
         self.command(0xCA, 0x7F)               # Mux ratio
@@ -471,7 +614,8 @@ class ssd1351(color_device):
         self.command(0xA1, 0x00)               # Set Display start line
         self.command(0xA2, 0x00)               # Set display offset
         self.command(0xB5, 0x00)               # Set GPIO
-        self.command(0xAB, 0x01)               # Function select (internal - diode drop)
+        # Function select (internal - diode drop)
+        self.command(0xAB, 0x01)
         self.command(0xB1, 0x32)               # Precharge
         self.command(0xB4, 0xA0, 0xB5, 0x55)   # Set segment low voltage
         self.command(0xBE, 0x05)               # Set VcomH voltage
@@ -577,7 +721,8 @@ class ssd1322(greyscale_device):
 
         self.command(0x15, coladdr_start, coladdr_end)  # set column addr
         self.command(0x75, top, bottom - 1)             # Reset row addr
-        self.command(0x5C)                              # Enable MCU to write data into RAM
+        # Enable MCU to write data into RAM
+        self.command(0x5C)
 
     def command(self, cmd, *args):
         """
@@ -659,8 +804,8 @@ class ssd1322_nhd(greyscale_device):
     def __init__(self, serial_interface=None, width=128, height=64, rotate=0,
                  mode="RGB", framebuffer=full_frame(), **kwargs):
         super(ssd1322_nhd, self).__init__(luma.oled.const.ssd1322, serial_interface,
-                                      128, 64, rotate, mode, framebuffer,
-                                      nibble_order=0, **kwargs)
+                                          128, 64, rotate, mode, framebuffer,
+                                          nibble_order=0, **kwargs)
 
     def _supported_dimensions(self):
         return [(128, 64)]
@@ -688,7 +833,8 @@ class ssd1322_nhd(greyscale_device):
 
         self.command(0x15, coladdr_start, coladdr_end)  # set column addr
         self.command(0x75, top, bottom - 1)             # Reset row addr
-        self.command(0x5C)                              # Enable MCU to write data into RAM
+        # Enable MCU to write data into RAM
+        self.command(0x5C)
 
     def command(self, cmd, *args):
         """
@@ -814,7 +960,8 @@ class ssd1327(greyscale_device):
     def _init_sequence(self):
         self.command(
             0xAE,               # Display off (all pixels off)
-            0xA0, 0x53,         # Segment remap (com split, com remap, nibble remap, column remap)
+            # Segment remap (com split, com remap, nibble remap, column remap)
+            0xA0, 0x53,
             0xA1, 0x00,         # Display start line
             0xA2, 0x00,         # Display offset
             0xA4,               # regular display
@@ -922,15 +1069,18 @@ class ws0010(parallel_device, character, __framebuffer_mixin):
     def __init__(self, serial_interface=None, width=100, height=16, undefined='_', font=None,
                  selected_font=0, exec_time=1e-6 * 50, rotate=0, framebuffer=None,
                  const=luma.oled.const.ws0010, **kwargs):
-        super(ws0010, self).__init__(const, serial_interface, exec_time=exec_time, **kwargs)
+        super(ws0010, self).__init__(
+            const, serial_interface, exec_time=exec_time, **kwargs)
         self.capabilities(width, height, rotate)
         self.init_framebuffer(framebuffer)
-        self.font = font if font is not None else embedded_fonts(self._const.FONTDATA, selected_font=selected_font)
+        self.font = font if font is not None else embedded_fonts(
+            self._const.FONTDATA, selected_font=selected_font)
         self._undefined = undefined
         self.device = self
 
         # Supported modes
-        supported = (width, height) in [(40, 8), (40, 16), (60, 8), (60, 16), (80, 8), (80, 16), (100, 8), (100, 16)]
+        supported = (width, height) in [
+            (40, 8), (40, 16), (60, 8), (60, 16), (80, 8), (80, 16), (100, 8), (100, 16)]
         if not supported:
             raise luma.core.error.DeviceDisplayModeError(
                 f"Unsupported display mode: {width} x {height}")
@@ -963,8 +1113,10 @@ class ws0010(parallel_device, character, __framebuffer_mixin):
         self.command(0x00, 0x00, dl, self._const.FUNCTIONSET | (dl << 4))
         self.command(self._const.DISPLAYOFF)  # Set Display Off
         self.command(self._const.POWEROFF)
-        self.command(self._const.ENTRY)  # Set entry mode to direction right, no shift
-        self.command(self._const.POWERON | self._const.GRAPHIC)  # Turn internal power on and set into graphics mode
+        # Set entry mode to direction right, no shift
+        self.command(self._const.ENTRY)
+        # Turn internal power on and set into graphics mode
+        self.command(self._const.POWERON | self._const.GRAPHIC)
         self.command(self._const.DISPLAYON)  # Turn Display back on
 
     def display(self, image):
@@ -982,7 +1134,8 @@ class ws0010(parallel_device, character, __framebuffer_mixin):
             # TODO: Should consider whether this should be moved into framebuffer class
             left, top, right, bottom = bounding_box
             top = top // 8 * 8
-            bottom = bottom // 8 * 8 if not bottom % 8 else (bottom // 8 + 1) * 8
+            bottom = bottom // 8 * \
+                8 if not bottom % 8 else (bottom // 8 + 1) * 8
 
             if self._bitmode == 4:
                 # If in 4 bit mode, issue reset to make sure we are in sync with the display
@@ -1002,8 +1155,11 @@ class ws0010(parallel_device, character, __framebuffer_mixin):
             lines = int((bottom - top) / 8)
             lineSize = int(len(buf) / lines)
             for i in range(lines):
-                self.command(self._const.DDRAMADDR + left, self._const.CGRAMADDR + i + (top // 8))  # Set display to current line at the starting column to update
-                self.data(buf[lineSize * i:lineSize * (i + 1)])   # Send section of current line that needs to be changed
+                # Set display to current line at the starting column to update
+                self.command(self._const.DDRAMADDR + left,
+                             self._const.CGRAMADDR + i + (top // 8))
+                # Send section of current line that needs to be changed
+                self.data(buf[lineSize * i:lineSize * (i + 1)])
 
     def get_font(self, ft):
         """
@@ -1071,4 +1227,5 @@ class winstar_weh(ws0010):
     """
 
     def __init__(self, serial_interface=None, width=16, height=2, **kwargs):
-        super(winstar_weh, self).__init__(const=luma.oled.const.winstar_weh, serial_interface=serial_interface, width=width * 5, height=height * 8, xwidth=5, **kwargs)
+        super(winstar_weh, self).__init__(const=luma.oled.const.winstar_weh,
+                                          serial_interface=serial_interface, width=width * 5, height=height * 8, xwidth=5, **kwargs)
