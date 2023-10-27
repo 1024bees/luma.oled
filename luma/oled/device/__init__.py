@@ -176,22 +176,16 @@ class st7789(color_device):
         if y1 is None:
             y1 = self._height - 1
 
-        y0 += self._offset_top
-        y1 += self._offset_top
-
-        x0 += self._offset_left
-        x1 += self._offset_left
-
         self.command(self._const.CASET)       # Column addr set
-        self.data(x0 >> 8)
-        self.data(x0 & 0xFF)             # XSTART
-        self.data(x1 >> 8)
-        self.data(x1 & 0xFF)             # XEND
+        self.data([x0 >> 8,
+                   x0 & 0xFF,             # XSTART
+                   x1 >> 8,
+                   x1 & 0xFF])             # XEND
         self.command(self._const.RASET)       # Row addr set
-        self.data(y0 >> 8)
-        self.data(y0 & 0xFF)             # YSTART
-        self.data(y1 >> 8)
-        self.data(y1 & 0xFF)             # YEND
+        self.data([y0 >> 8,
+                   y0 & 0xFF,             # YSTART
+                   y1 >> 8,
+                   y1 & 0xFF])             # YEND
         self.command(self._const.RAMWR)       # write to RAM
 
 
